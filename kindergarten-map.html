@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>香港油尖旺区 & 九龙城区幼稚园分布地图</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        #map { height: 100vh; width: 100%; }
+
+        /* 移动端顶部搜索栏 */
+        .mobile-search-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 10px 15px;
+            z-index: 1001;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .mobile-search-bar .search-input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .mobile-search-bar .search-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .mobile-search-bar .search-btn,
+        .mobile-search-bar .clear-btn {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .mobile-search-bar .toggle-list-btn {
+            padding: 12px 15px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+
+        /* 移动端结果面板 */
+        .mobile-result-panel {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 15px;
+            z-index: 1001;
+            max-height: 40vh;
+            overflow-y: auto;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        .mobile-result-panel .result-title {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .mobile-result-panel .nearby-item {
+            padding: 10px;
+            background: #f5f5f5;
+            margin: 5px 0;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        /* 信息面板 */
+        .info-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 380px;
+            max-height: 90vh;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        /* 搜索框 */
+        .search-box {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .search-box h4 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .search-input-wrapper {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: #007bff;
+        }
+
+        .search-btn {
+            padding: 10px 15px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .search-btn:hover {
+            background: #0056b3;
+        }
+
+        .clear-btn {
+            padding: 10px 15px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .clear-btn:hover {
+            background: #545b62;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .search-result {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 6px;
+            border-left: 3px solid #007bff;
+        }
+
+        .search-result-title {
+            font-weight: bold;
+            color: #007bff;
+            margin-bottom: 5px;
+        }
+
+        .search-result-info {
+            font-size: 13px;
+            color: #333;
+        }
+
+        .nearby-list {
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .nearby-item {
+            padding: 6px 8px;
+            background: #f5f5f5;
+            margin: 3px 0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nearby-name {
+            flex: 1;
+        }
+
+        .nearby-distance {
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .info-panel h3 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .legend {
+            margin-bottom: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .kindergarten-list {
+            font-size: 13px;
+        }
+
+        .kindergarten-item {
+            margin: 8px 0;
+            padding: 8px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .kindergarten-item:hover {
+            background: #e8e8e8;
+        }
+
+        .kindergarten-item.has-outdoor {
+            border-left: 3px solid #28a745;
+        }
+
+        .kindergarten-item.no-outdoor {
+            border-left: 3px solid #dc3545;
+        }
+
+        .kindergarten-item.highlighted {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+        }
+
+        .kg-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .kg-address {
+            color: #666;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .kg-distance {
+            color: #007bff;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .district-header {
+            background: #007bff;
+            color: white;
+            padding: 8px;
+            margin: 10px 0 5px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .district-header.kowloon-city {
+            background: #6f42c1;
+        }
+
+        .custom-popup .leaflet-popup-content {
+            width: 280px;
+        }
+
+        .popup-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .popup-info {
+            font-size: 12px;
+            color: #666;
+            margin: 3px 0;
+        }
+
+        .popup-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            margin: 3px 2px;
+        }
+
+        .popup-badge.outdoor {
+            background: #28a745;
+            color: white;
+        }
+
+        .popup-badge.no-outdoor {
+            background: #dc3545;
+            color: white;
+        }
+
+        .popup-badge.free {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .location-marker {
+            background: #ff6b6b;
+            border: 3px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+        }
+
+        /* 手机端适配 - 屏幕宽度小于768px */
+        @media screen and (max-width: 768px) {
+            #map {
+                height: calc(100vh - 60px);
+                margin-top: 60px;
+            }
+
+            .mobile-search-bar {
+                display: block;
+            }
+
+            .info-panel {
+                position: fixed;
+                top: 60px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                max-width: 100%;
+                max-height: none;
+                padding: 15px;
+                border-radius: 0;
+                z-index: 1002;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .info-panel.show {
+                transform: translateX(0);
+            }
+
+            .info-panel .search-box {
+                display: none;
+            }
+
+            .search-box.mobile-visible {
+                display: block;
+            }
+
+            .info-panel h3 {
+                font-size: 18px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid #eee;
+            }
+
+            .kindergarten-item {
+                padding: 12px;
+                margin: 8px 0;
+                font-size: 14px;
+            }
+
+            .kg-name {
+                font-size: 15px;
+            }
+
+            .kg-address, .kg-distance {
+                font-size: 13px;
+            }
+
+            .district-header {
+                font-size: 15px;
+                padding: 10px;
+            }
+
+            .legend-item {
+                margin: 8px 0;
+                font-size: 14px;
+            }
+
+            .legend-color {
+                width: 24px;
+                height: 24px;
+            }
+
+            .custom-popup .leaflet-popup-content {
+                width: 240px;
+            }
+
+            .popup-title {
+                font-size: 15px;
+            }
+
+            .popup-info {
+                font-size: 13px;
+            }
+
+            .popup-badge {
+                font-size: 12px;
+                padding: 3px 10px;
+            }
+
+            /* 关闭按钮 */
+            .close-panel-btn {
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                background: #dc3545;
+                color: white;
+                border: none;
+                width: 30px;
+                height: 30px;
+                border-radius: 50%;
+                cursor: pointer;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        /* 手机端搜索结果面板 */
+        @media screen and (max-width: 768px) {
+            .mobile-result-panel {
+                display: block;
+            }
+
+            .mobile-result-panel.hidden {
+                display: none;
+            }
+
+            .search-result {
+                display: none;
+            }
+
+            .mobile-result-panel .nearby-item {
+                padding: 12px;
+                font-size: 14px;
+            }
+
+            .mobile-result-panel .nearby-name {
+                font-size: 14px;
+            }
+
+            .mobile-result-panel .nearby-distance {
+                font-size: 13px;
+            }
+        }
+
+        /* 极小屏幕适配 */
+        @media screen and (max-width: 375px) {
+            .mobile-search-bar .search-input {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            .mobile-search-bar .search-btn,
+            .mobile-search-bar .clear-btn,
+            .mobile-search-bar .toggle-list-btn {
+                padding: 10px 12px;
+                font-size: 12px;
+            }
+
+            .kindergarten-item {
+                padding: 10px;
+            }
+
+            .kg-name {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <!-- 移动端顶部搜索栏 -->
+    <div class="mobile-search-bar">
+        <div class="search-input-wrapper">
+            <input type="text" class="search-input" id="mobileAddressInput" placeholder="输入小区名称搜索附近幼稚园">
+        </div>
+        <div class="button-group">
+            <button class="search-btn" onclick="mobileSearch()">搜索</button>
+            <button class="clear-btn" onclick="mobileClear()">清除</button>
+            <button class="toggle-list-btn" onclick="toggleListPanel()">📋 列表</button>
+        </div>
+    </div>
+
+    <!-- 移动端底部结果面板 -->
+    <div class="mobile-result-panel hidden" id="mobileResultPanel">
+        <div class="result-title" id="mobileResultTitle">搜索结果</div>
+        <div id="mobileNearbyList"></div>
+    </div>
+
+    <!-- 信息面板（桌面端/手机端列表） -->
+    <div class="info-panel" id="infoPanel">
+        <button class="close-panel-btn" onclick="closeListPanel()">✕</button>
+        <h3>幼稚园分布地图</h3>
+
+        <div class="search-box">
+            <h4>🔍 搜索小区/地址附近的幼稚园</h4>
+            <div class="search-input-wrapper">
+                <input type="text" class="search-input" id="addressInput" placeholder="输入小区名称或地址，如：黄埔花园、港湾豪庭">
+            </div>
+            <div class="button-group">
+                <button class="search-btn" onclick="searchLocation()">搜索</button>
+                <button class="clear-btn" onclick="clearSearch()">清除</button>
+            </div>
+            <div id="searchResult"></div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #28a745;"></div>
+                <span>有户外场地</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #dc3545;"></div>
+                <span>无户外场地</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #007bff;"></div>
+                <span>地铁站 (MTR)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6b6b;"></div>
+                <span>您的搜索位置</span>
+            </div>
+        </div>
+
+        <div class="kindergarten-list" id="kindergartenList">
+            <div class="district-header">油尖旺区 (12所)</div>
+            <!-- 动态生成 -->
+            <div class="district-header kowloon-city">九龙城区 (25所)</div>
+            <!-- 动态生成 -->
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // 初始化地图
+        var map = L.map('map').setView([22.3167, 114.1694], 14);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // 全局变量
+        var searchMarker = null;
+        var distanceLines = [];
+        var allKindergartens = [];
+        var markers = [];
+
+        // 地铁站标记
+        var mtrIcon = L.divIcon({
+            className: 'mtr-marker',
+            html: '<div style="background:#007bff;color:white;padding:5px 8px;border-radius:4px;font-size:12px;font-weight:bold;border:2px solid white;">MTR</div>',
+            iconSize: [50, 30]
+        });
+
+        var outdoorIcon = L.divIcon({
+            className: 'outdoor-marker',
+            html: '<div style="background:#28a745;color:white;border-radius:50%;width:26px;height:26px;text-align:center;line-height:26px;border:2px solid white;">✓</div>',
+            iconSize: [26, 26]
+        });
+
+        var noOutdoorIcon = L.divIcon({
+            className: 'no-outdoor-marker',
+            html: '<div style="background:#dc3545;color:white;border-radius:50%;width:26px;height:26px;text-align:center;line-height:26px;border:2px solid white;">○</div>',
+            iconSize: [26, 26]
+        });
+
+        var locationIcon = L.divIcon({
+            className: 'location-marker',
+            html: '<div style="background:#ff6b6b;border:3px solid white;border-radius:50%;width:20px;height:20px;box-shadow:0 2px 5px rgba(0,0,0,0.3);"></div>',
+            iconSize: [20, 20]
+        });
+
+        // 地铁站数据
+        var stations = [
+            { name: '旺角站 Mong Kok', lat: 22.3193, lng: 114.1694 },
+            { name: '太子站 Prince Edward', lat: 22.3222, lng: 114.1722 },
+            { name: '油麻地站 Yau Ma Tei', lat: 22.3156, lng: 114.1711 },
+            { name: '奥运站 Olympic', lat: 22.3178, lng: 114.1622 },
+            { name: '何文田站 Ho Man Tin', lat: 22.3111, lng: 114.1767 },
+            { name: '黄埔站 Whampoa', lat: 22.3056, lng: 114.1833 },
+            { name: '九龙塘站 Kowloon Tong', lat: 22.3344, lng: 114.1756 },
+            { name: '宋皇台站 Sung Wong Toi', lat: 22.3278, lng: 114.1894 },
+            { name: '土瓜湾站 To Kwa Wan', lat: 22.3222, lng: 114.1917 },
+            { name: '柯士甸站 Austin', lat: 22.3056, lng: 114.1656 }
+        ];
+
+        // 添加地铁站标记
+        stations.forEach(function(s) {
+            L.marker([s.lat, s.lng], { icon: mtrIcon })
+                .addTo(map)
+                .bindPopup('<b>' + s.name + '</b><br>地铁站');
+        });
+
+        // 幼稚园数据
+        var ytmKindergartens = [
+            { name: '深培中英文幼稚园', address: '大角咀柳树街10号', lat: 22.3185, lng: 114.1615, outdoor: true, station: '奥运站', stationDist: 350 },
+            { name: '百佳员工慈善基金幼儿学校', address: '旺角砵兰街387号', lat: 22.3195, lng: 114.1692, outdoor: true, station: '旺角站', stationDist: 200 },
+            { name: '驿发花园浸信会幼儿学校', address: '油麻地东莞街14号', lat: 22.3145, lng: 114.1722, outdoor: true, station: '油麻地站', stationDist: 300 },
+            { name: '汇丰银行慈善基金幼儿学校', address: '油麻地众坊街', lat: 22.3152, lng: 114.1715, outdoor: true, station: '油麻地站', stationDist: 150 },
+            { name: '望觉堂贤贞幼稚园', address: '旺角弼街56号', lat: 22.3198, lng: 114.1698, outdoor: false, station: '旺角站', stationDist: 250 },
+            { name: '启文幼稚园', address: '大角咀港湾豪庭', lat: 22.3178, lng: 114.1625, outdoor: false, station: '奥运站', stationDist: 200 },
+            { name: '青乐幼稚园', address: '油麻地渡船街28号', lat: 22.3138, lng: 114.1733, outdoor: false, station: '油麻地站', stationDist: 400 },
+            { name: '中银幼儿学校', address: '大角咀奥海城', lat: 22.3172, lng: 114.1618, outdoor: false, station: '奥运站', stationDist: 100 },
+            { name: '卜凯赛琳幼儿学校', address: '油麻地永星里11号', lat: 22.3150, lng: 114.1710, outdoor: false, station: '油麻地站', stationDist: 200 },
+            { name: '荔枝角幼儿学校', address: '荔枝角道150号', lat: 22.3215, lng: 114.1705, outdoor: false, station: '太子站', stationDist: 500 },
+            { name: '仁爱堂陈郑玉而幼稚园', address: '柯士甸道西1号', lat: 22.3062, lng: 114.1665, outdoor: false, station: '柯士甸站', stationDist: 100 },
+            { name: '循道卫理杨震幼儿学校', address: '窝打老道54号', lat: 22.3158, lng: 114.1718, outdoor: false, station: '油麻地站', stationDist: 300 }
+        ];
+
+        var kcKindergartens = [
+            { name: '九龙城浸信会幼稚园', address: '亚皆老街206号', lat: 22.3285, lng: 114.1885, outdoor: true, station: '宋皇台站', stationDist: 400, free: true },
+            { name: '闽光书院', address: '九龙城天光道14号', lat: 22.3292, lng: 114.1892, outdoor: true, station: '宋皇台站', stationDist: 500 },
+            { name: '启思幼稚园', address: '九龙塘律伦街6号', lat: 22.3335, lng: 114.1755, outdoor: true, station: '九龙塘站', stationDist: 300 },
+            { name: '神召第一幼稚园', address: '亚皆老街123号', lat: 22.3280, lng: 114.1875, outdoor: true, station: '宋皇台站', stationDist: 300 },
+            { name: '马头涌幼儿学校', address: '马头涌道107号', lat: 22.3288, lng: 114.1888, outdoor: true, station: '宋皇台站', stationDist: 350 },
+            { name: '路德会包美达幼儿园', address: '何文田忠孝街89号', lat: 22.3115, lng: 114.1770, outdoor: true, station: '何文田站', stationDist: 300 },
+            { name: '救世军乐民幼儿学校', address: '土瓜湾乐民新邨', lat: 22.3228, lng: 114.1925, outdoor: true, station: '土瓜湾站', stationDist: 400 },
+            { name: '信义会马头围幼儿学校', address: '马头围邨', lat: 22.3218, lng: 114.1918, outdoor: false, station: '土瓜湾站', stationDist: 300 },
+            { name: '新航黄埔幼儿学校', address: '黄埔花园翠杨苑', lat: 22.3062, lng: 114.1832, outdoor: false, station: '黄埔站', stationDist: 100 },
+            { name: '汉师幼稚园', address: '何文田自由道2号', lat: 22.3112, lng: 114.1765, outdoor: false, station: '何文田站', stationDist: 200 },
+            { name: '何文田浸信会幼稚园', address: '何文田南村', lat: 22.3108, lng: 114.1775, outdoor: false, station: '何文田站', stationDist: 400 },
+            { name: '保良局李徐松声幼稚园', address: '红磡佛光街5号', lat: 22.3085, lng: 114.1825, outdoor: false, station: '何文田站', stationDist: 500 },
+            { name: '保良局吕陈慧贞幼稚园', address: '何文田常乐邨', lat: 22.3105, lng: 114.1780, outdoor: false, station: '何文田站', stationDist: 350 },
+            { name: '何文田循道卫理杨震', address: '何文田邨静文楼', lat: 22.3102, lng: 114.1785, outdoor: false, station: '何文田站', stationDist: 400 },
+            { name: '圣文嘉幼稚园', address: '何文田冠熹苑', lat: 22.3100, lng: 114.1772, outdoor: false, station: '何文田站', stationDist: 300 },
+            { name: '东华三院罗黄碧珊幼儿园', address: '何文田爱民邨', lat: 22.3095, lng: 114.1778, outdoor: false, station: '何文田站', stationDist: 450 },
+            { name: '太阳岛英文幼稚园(乐民)', address: '乐民新村F座', lat: 22.3215, lng: 114.1922, outdoor: false, station: '土瓜湾站', stationDist: 350 },
+            { name: '太阳岛英文幼稚园', address: '土瓜湾炮仗街', lat: 22.3220, lng: 114.1915, outdoor: false, station: '土瓜湾站', stationDist: 300 },
+            { name: '美雅幼稚园', address: '土瓜湾炮仗街148号', lat: 22.3222, lng: 114.1912, outdoor: false, station: '土瓜湾站', stationDist: 250 },
+            { name: '美雅幼稚园(分校)', address: '土瓜湾下乡道', lat: 22.3215, lng: 114.1908, outdoor: false, station: '土瓜湾站', stationDist: 350 },
+            { name: '威廉睿智幼稚园', address: '黄埔花园第7期', lat: 22.3058, lng: 114.1835, outdoor: false, station: '黄埔站', stationDist: 150 },
+            { name: '崇真会安基幼儿学校', address: '黄埔花园第5期', lat: 22.3065, lng: 114.1828, outdoor: false, station: '黄埔站', stationDist: 200 },
+            { name: '啬色园可爱幼儿园', address: '九龙城九龙城道', lat: 22.3300, lng: 114.1878, outdoor: false, station: '宋皇台站', stationDist: 450 },
+            { name: '保良局陈黎惠莲幼稚园', address: '马头围道188号', lat: 22.3275, lng: 114.1880, outdoor: false, station: '宋皇台站', stationDist: 350 },
+            { name: '港青基信幼稚园', address: '九龙城沐虹街', lat: 22.3315, lng: 114.1865, outdoor: false, station: '宋皇台站', stationDist: 550 }
+        ];
+
+        allKindergartens = ytmKindergartens.concat(kcKindergartens);
+
+        // 计算距离函数
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            var R = 6371000; // 地球半径(米)
+            var dLat = (lat2 - lat1) * Math.PI / 180;
+            var dLng = (lng2 - lng1) * Math.PI / 180;
+            var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLng/2) * Math.sin(dLng/2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // 格式化距离
+        function formatDistance(meters) {
+            if (meters < 1000) {
+                return meters.toFixed(0) + '米 (~' + Math.ceil(meters/80) + '分钟)';
+            } else {
+                return (meters/1000).toFixed(1) + '公里 (~' + Math.ceil(meters/80) + '分钟)';
+            }
+        }
+
+        // 添加幼稚园标记
+        function addKindergartenMarker(kg) {
+            var icon = kg.outdoor ? outdoorIcon : noOutdoorIcon;
+            var popupContent = '<div class="popup-title">' + kg.name + '</div>' +
+                '<div class="popup-info">📍 ' + kg.address + '</div>' +
+                '<div class="popup-info">🚇 最近地铁站: ' + kg.station + ' (' + kg.stationDist + 'm)</div>';
+
+            if (kg.outdoor) {
+                popupContent += '<span class="popup-badge outdoor">有户外场地</span>';
+            } else {
+                popupContent += '<span class="popup-badge no-outdoor">无户外场地</span>';
+            }
+            if (kg.free) {
+                popupContent += '<span class="popup-badge free">免费</span>';
+            }
+
+            var marker = L.marker([kg.lat, kg.lng], { icon: icon })
+                .addTo(map)
+                .bindPopup(popupContent, { className: 'custom-popup' });
+
+            markers.push({ marker: marker, kg: kg });
+            return marker;
+        }
+
+        // 初始化添加所有幼稚园
+        allKindergartens.forEach(addKindergartenMarker);
+
+        // 生成列表
+        function generateList() {
+            var listHtml = '<div class="district-header">油尖旺区 (' + ytmKindergartens.length + '所)</div>';
+            ytmKindergartens.forEach(function(kg) {
+                var outdoorClass = kg.outdoor ? 'has-outdoor' : 'no-outdoor';
+                listHtml += '<div class="kindergarten-item ' + outdoorClass + '" onclick="focusKindergarten(\'' + kg.name + '\')">';
+                listHtml += '<div class="kg-name">' + kg.name + '</div>';
+                listHtml += '<div class="kg-address">' + kg.address + '</div>';
+                listHtml += '<div class="kg-distance">距' + kg.station + ' ~' + kg.stationDist + 'm</div>';
+                listHtml += '</div>';
+            });
+
+            listHtml += '<div class="district-header kowloon-city">九龙城区 (' + kcKindergartens.length + '所)</div>';
+            kcKindergartens.forEach(function(kg) {
+                var outdoorClass = kg.outdoor ? 'has-outdoor' : 'no-outdoor';
+                var freeText = kg.free ? ' ★免费' : '';
+                listHtml += '<div class="kindergarten-item ' + outdoorClass + '" onclick="focusKindergarten(\'' + kg.name + '\')">';
+                listHtml += '<div class="kg-name">' + kg.name + freeText + '</div>';
+                listHtml += '<div class="kg-address">' + kg.address + '</div>';
+                listHtml += '<div class="kg-distance">距' + kg.station + ' ~' + kg.stationDist + 'm</div>';
+                listHtml += '</div>';
+            });
+
+            document.getElementById('kindergartenList').innerHTML = listHtml;
+        }
+        generateList();
+
+        // 聚焦幼稚园
+        function focusKindergarten(name) {
+            var kg = allKindergartens.find(function(k) { return k.name === name; });
+            if (kg) {
+                map.setView([kg.lat, kg.lng], 16);
+                markers.find(function(m) { return m.kg.name === name; }).marker.openPopup();
+            }
+        }
+
+        // 常见小区/大厦/地址坐标映射
+        var locationMap = {
+            // === 黄埔/红磡区域 ===
+            '黄埔花园': { lat: 22.3056, lng: 114.1833, desc: '黄埔花园位于红磡，近黄埔站，大型住宅小区' },
+            '黄埔新村': { lat: 22.3058, lng: 114.1840, desc: '红磡黄埔新村，近黄埔站' },
+            '红磡湾中心': { lat: 22.3065, lng: 114.1820, desc: '红磡住宅大厦，近黄埔站' },
+            '海滨南岸': { lat: 22.3045, lng: 114.1835, desc: '红磡海滨住宅，近黄埔站' },
+            '海逸豪园': { lat: 22.3042, lng: 114.1840, desc: '红磡豪宅，近黄埔站' },
+            '都汇': { lat: 22.3060, lng: 114.1838, desc: '红磡住宅，近黄埔站' },
+            '半岛豪庭': { lat: 22.3038, lng: 114.1845, desc: '红磡豪宅，近黄埔站' },
+            '维港·星岸': { lat: 22.3035, lng: 114.1850, desc: '红磡豪宅，近黄埔站' },
+
+            // === 大角咀区域 ===
+            '港湾豪庭': { lat: 22.3178, lng: 114.1625, desc: '大角咀住宅，近奥运站' },
+            '奥海城': { lat: 22.3172, lng: 114.1618, desc: '大角咀商场及住宅，近奥运站' },
+            '帝柏海湾': { lat: 22.3175, lng: 114.1620, desc: '大角咀海旁住宅，近奥运站' },
+            '柏景湾': { lat: 22.3175, lng: 114.1610, desc: '大角咀住宅，近奥运站' },
+            '维港湾': { lat: 22.3165, lng: 114.1615, desc: '大角咀住宅，近奥运站' },
+            '汇丰中心': { lat: 22.3180, lng: 114.1630, desc: '大角咀住宅大厦，近奥运站' },
+            '富荣花园': { lat: 22.3168, lng: 114.1635, desc: '大角咀住宅，近奥运站' },
+            '海富苑': { lat: 22.3170, lng: 114.1628, desc: '大角咀居屋，近奥运站' },
+            '深旺道': { lat: 22.3160, lng: 114.1610, desc: '大角咀街道，近奥运站' },
+            '利奥坊': { lat: 22.3182, lng: 114.1628, desc: '大角咀住宅，近奥运站' },
+
+            // === 旺角区域 ===
+            '旺角': { lat: 22.3193, lng: 114.1694, desc: '旺角中心地带' },
+            '旺角中心': { lat: 22.3195, lng: 114.1695, desc: '旺角商业住宅大厦' },
+            '雅兰中心': { lat: 22.3198, lng: 114.1700, desc: '旺角商业住宅大厦' },
+            '好景中心': { lat: 22.3200, lng: 114.1690, desc: '旺角住宅大厦' },
+            '豪苑': { lat: 22.3180, lng: 114.1680, desc: '旺角住宅大厦' },
+            '广发大厦': { lat: 22.3190, lng: 114.1700, desc: '旺角住宅大厦' },
+            '砵兰街': { lat: 22.3195, lng: 114.1692, desc: '旺角街道' },
+            '弥敦道': { lat: 22.3190, lng: 114.1710, desc: '旺角主要街道' },
+            '亚皆老街': { lat: 22.3205, lng: 114.1705, desc: '旺角主要街道' },
+            '新世界中心': { lat: 22.3185, lng: 114.1698, desc: '旺角商业中心' },
+            '朗豪坊': { lat: 22.3190, lng: 114.1695, desc: '旺角商场' },
+            '始创中心': { lat: 22.3200, lng: 114.1705, desc: '旺角商业大厦' },
+            '西洋菜南街': { lat: 22.3192, lng: 114.1700, desc: '旺角街道' },
+            '花园街': { lat: 22.3195, lng: 114.1702, desc: '旺角街道' },
+            '通菜街': { lat: 22.3198, lng: 114.1698, desc: '旺角女人街' },
+            '弼街': { lat: 22.3200, lng: 114.1695, desc: '旺角街道' },
+            '奶路臣街': { lat: 22.3192, lng: 114.1698, desc: '旺角街道' },
+
+            // === 太子区域 ===
+            '太子': { lat: 22.3222, lng: 114.1722, desc: '太子地铁站附近' },
+            '太子道西': { lat: 22.3220, lng: 114.1718, desc: '太子主要街道' },
+            '荔枝角道': { lat: 22.3215, lng: 114.1705, desc: '太子街道' },
+            '大南街': { lat: 22.3225, lng: 114.1710, desc: '太子街道' },
+            '枫树街': { lat: 22.3228, lng: 114.1708, desc: '太子街道' },
+
+            // === 油麻地区域 ===
+            '油麻地': { lat: 22.3156, lng: 114.1711, desc: '油麻地中心地带' },
+            '油麻地骏发花园': { lat: 22.3150, lng: 114.1720, desc: '油麻地住宅' },
+            '窝打老道': { lat: 22.3158, lng: 114.1718, desc: '油麻地街道' },
+            '东莞街': { lat: 22.3145, lng: 114.1722, desc: '油麻地街道' },
+            '众坊街': { lat: 22.3152, lng: 114.1715, desc: '油麻地街道，梁显利社区中心' },
+            '永星里': { lat: 22.3150, lng: 114.1710, desc: '油麻地街道' },
+            '渡船街': { lat: 22.3138, lng: 114.1733, desc: '油麻地街道' },
+            '碧街': { lat: 22.3145, lng: 114.1712, desc: '油麻地街道' },
+            '上海街': { lat: 22.3155, lng: 114.1705, desc: '油麻地街道' },
+            '新填地街': { lat: 22.3150, lng: 114.1715, desc: '油麻地街道' },
+
+            // === 何文田区域 ===
+            '何文田': { lat: 22.3111, lng: 114.1767, desc: '何文田住宅区' },
+            '爱民邨': { lat: 22.3095, lng: 114.1778, desc: '何文田公共房屋' },
+            '常乐邨': { lat: 22.3105, lng: 114.1780, desc: '何文田公共房屋' },
+            '冠熹苑': { lat: 22.3100, lng: 114.1772, desc: '何文田居屋' },
+            '何文田山': { lat: 22.3090, lng: 114.1760, desc: '何文田豪宅区' },
+            '太子道东': { lat: 22.3115, lng: 114.1755, desc: '何文田街道' },
+            '忠孝街': { lat: 22.3115, lng: 114.1770, desc: '何文田街道' },
+            '自由道': { lat: 22.3112, lng: 114.1765, desc: '何文田街道' },
+            '佛光街': { lat: 22.3085, lng: 114.1825, desc: '何文田/红磡街道' },
+            '公主道': { lat: 22.3100, lng: 114.1750, desc: '何文田街道' },
+            '卫理道': { lat: 22.3108, lng: 114.1785, desc: '何文田街道' },
+            '巴富街': { lat: 22.3105, lng: 114.1775, desc: '何文田街道' },
+            '太平道': { lat: 22.3108, lng: 114.1768, desc: '何文田街道' },
+            '梭桠道': { lat: 22.3110, lng: 114.1772, desc: '何文田街道' },
+            '嘉林边道': { lat: 22.3295, lng: 114.1890, desc: '九龙城街道' },
+
+            // === 九龙城区域 ===
+            '九龙城': { lat: 22.3278, lng: 114.1894, desc: '九龙城住宅区' },
+            '九龙城道': { lat: 22.3300, lng: 114.1878, desc: '九龙城街道' },
+            '马头涌道': { lat: 22.3288, lng: 114.1888, desc: '九龙城街道' },
+            '马头围道': { lat: 22.3275, lng: 114.1880, desc: '九龙城街道' },
+            '天光道': { lat: 22.3292, lng: 114.1892, desc: '九龙城街道' },
+            '福佬村道': { lat: 22.3280, lng: 114.1885, desc: '九龙城街道' },
+            '沐虹街': { lat: 22.3315, lng: 114.1865, desc: '启晴邨街道' },
+            '启晴邨': { lat: 22.3315, lng: 114.1865, desc: '九龙城公共房屋' },
+            '德朗邨': { lat: 22.3308, lng: 114.1870, desc: '九龙城公共房屋' },
+
+            // === 土瓜湾区域 ===
+            '土瓜湾': { lat: 22.3222, lng: 114.1917, desc: '土瓜湾住宅区' },
+            '乐民新村': { lat: 22.3215, lng: 114.1922, desc: '土瓜湾公共房屋' },
+            '马头围邨': { lat: 22.3218, lng: 114.1918, desc: '土瓜湾公共房屋' },
+            '炮仗街': { lat: 22.3220, lng: 114.1915, desc: '土瓜湾街道' },
+            '下乡道': { lat: 22.3215, lng: 114.1908, desc: '土瓜湾街道' },
+            '鹤园街': { lat: 22.3210, lng: 114.1920, desc: '土瓜湾街道' },
+            '九龙城道': { lat: 22.3230, lng: 114.1910, desc: '土瓜湾街道' },
+            '安徽街': { lat: 22.3225, lng: 114.1918, desc: '土瓜湾街道' },
+            '浙江街': { lat: 22.3218, lng: 114.1925, desc: '土瓜湾街道' },
+
+            // === 九龙塘区域 ===
+            '九龙塘': { lat: 22.3344, lng: 114.1756, desc: '九龙塘住宅区，名校网' },
+            '律伦街': { lat: 22.3335, lng: 114.1755, desc: '九龙塘街道' },
+            '沙福道': { lat: 22.3338, lng: 114.1750, desc: '九龙塘街道' },
+            '多福道': { lat: 22.3340, lng: 114.1758, desc: '九龙塘街道' },
+            '理想酒店': { lat: 22.3330, lng: 114.1752, desc: '九龙塘酒店' },
+            '根德道': { lat: 22.3335, lng: 114.1760, desc: '九龙塘街道' },
+
+            // === 其他区域 ===
+            '尖沙咀': { lat: 22.2980, lng: 114.1730, desc: '尖沙咀商业区' },
+            '柯士甸道': { lat: 22.3062, lng: 114.1665, desc: '西九龙街道' },
+            '柯士甸站': { lat: 22.3056, lng: 114.1656, desc: '西九龙地铁站' },
+            '漾日居': { lat: 22.3050, lng: 114.1660, desc: '西九龙住宅' },
+            '君临天下': { lat: 22.3045, lng: 114.1655, desc: '西九龙豪宅' },
+            '维港汇': { lat: 22.3040, lng: 114.1662, desc: '西九龙住宅' },
+
+            // === 地铁站名称 ===
+            '旺角站': { lat: 22.3193, lng: 114.1694, desc: '旺角地铁站' },
+            '太子站': { lat: 22.3222, lng: 114.1722, desc: '太子地铁站' },
+            '油麻地站': { lat: 22.3156, lng: 114.1711, desc: '油麻地地铁站' },
+            '奥运站': { lat: 22.3178, lng: 114.1622, desc: '大角咀地铁站' },
+            '何文田站': { lat: 22.3111, lng: 114.1767, desc: '何文田地铁站' },
+            '黄埔站': { lat: 22.3056, lng: 114.1833, desc: '红磡黄埔地铁站' },
+            '九龙塘站': { lat: 22.3344, lng: 114.1756, desc: '九龙塘地铁站' },
+            '宋皇台站': { lat: 22.3278, lng: 114.1894, desc: '九龙城地铁站' },
+            '土瓜湾站': { lat: 22.3222, lng: 114.1917, desc: '土瓜湾地铁站' },
+            '红磡站': { lat: 22.3045, lng: 114.1815, desc: '红磡火车站' }
+        };
+
+        // 搜索功能
+        function searchLocation() {
+            var input = document.getElementById('addressInput').value.trim();
+            if (!input) {
+                alert('请输入小区名称或地址');
+                return;
+            }
+
+            // 查找匹配的位置
+            var location = null;
+            for (var key in locationMap) {
+                if (input.toLowerCase().indexOf(key.toLowerCase()) !== -1 ||
+                    key.toLowerCase().indexOf(input.toLowerCase()) !== -1) {
+                    location = locationMap[key];
+                    location.key = key;
+                    break;
+                }
+            }
+
+            if (!location) {
+                // 如果没找到预定义位置，尝试解析地址关键词
+                var keywords = ['黄埔', '旺角', '油麻地', '何文田', '九龙城', '土瓜湾', '红磡', '大角咀', '奥运', '九龙塘'];
+                keywords.forEach(function(kw) {
+                    if (input.indexOf(kw) !== -1 && !location) {
+                        for (var key in locationMap) {
+                            if (key.indexOf(kw) !== -1) {
+                                location = locationMap[key];
+                                location.key = key;
+                                break;
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (!location) {
+                document.getElementById('searchResult').innerHTML =
+                    '<div class="search-result"><div class="search-result-info">未找到匹配位置，请尝试输入：<br>黄埔花园、港湾豪庭、奥海城、何文田、九龙城等</div></div>';
+                return;
+            }
+
+            // 清除之前的搜索标记
+            clearSearchMarkers();
+
+            // 添加搜索位置标记
+            searchMarker = L.marker([location.lat, location.lng], { icon: locationIcon })
+                .addTo(map)
+                .bindPopup('<b>您的搜索位置: ' + location.key + '</b><br>' + location.desc);
+
+            map.setView([location.lat, location.lng], 15);
+
+            // 计算附近幼稚园距离
+            var nearbyKg = allKindergartens.map(function(kg) {
+                var dist = calculateDistance(location.lat, location.lng, kg.lat, kg.lng);
+                return { kg: kg, distance: dist };
+            }).sort(function(a, b) {
+                return a.distance - b.distance;
+            });
+
+            // 找最近地铁站
+            var nearestStation = stations.map(function(s) {
+                var dist = calculateDistance(location.lat, location.lng, s.lat, s.lng);
+                return { station: s, distance: dist };
+            }).sort(function(a, b) {
+                return a.distance - b.distance;
+            })[0];
+
+            // 显示结果
+            var resultHtml = '<div class="search-result">';
+            resultHtml += '<div class="search-result-title">📍 ' + location.key + '</div>';
+            resultHtml += '<div class="search-result-info">' + location.desc + '</div>';
+            resultHtml += '<div class="search-result-info">🚇 最近地铁站: ' + nearestStation.station.name + ' - ' + formatDistance(nearestStation.distance) + '</div>';
+            resultHtml += '<div class="search-result-info" style="margin-top: 8px; font-weight: bold;">附近幼稚园 (按距离排序):</div>';
+            resultHtml += '<div class="nearby-list">';
+
+            nearbyKg.slice(0, 8).forEach(function(item) {
+                var outdoorIcon = item.kg.outdoor ? '✅' : '❌';
+                var freeText = item.kg.free ? ' [免费]' : '';
+                resultHtml += '<div class="nearby-item">';
+                resultHtml += '<span class="nearby-name">' + outdoorIcon + ' ' + item.kg.name + freeText + '</span>';
+                resultHtml += '<span class="nearby-distance">' + formatDistance(item.distance) + '</span>';
+                resultHtml += '</div>';
+            });
+
+            resultHtml += '</div></div>';
+            document.getElementById('searchResult').innerHTML = resultHtml;
+
+            // 绘制到最近幼稚园的距离线
+            var nearestKg = nearbyKg[0];
+            var line = L.polyline([
+                [location.lat, location.lng],
+                [nearestKg.kg.lat, nearestKg.kg.lng]
+            ], { color: '#007bff', weight: 2, dashArray: '5, 5' }).addTo(map);
+            distanceLines.push(line);
+
+            // 高亮最近的幼稚园列表项
+            highlightListItem(nearestKg.kg.name);
+        }
+
+        // 清除搜索标记
+        function clearSearchMarkers() {
+            if (searchMarker) {
+                map.removeLayer(searchMarker);
+                searchMarker = null;
+            }
+            distanceLines.forEach(function(line) {
+                map.removeLayer(line);
+            });
+            distanceLines = [];
+        }
+
+        // 高亮列表项
+        function highlightListItem(name) {
+            var items = document.querySelectorAll('.kindergarten-item');
+            items.forEach(function(item) {
+                item.classList.remove('highlighted');
+            });
+
+            items.forEach(function(item) {
+                if (item.querySelector('.kg-name').textContent.indexOf(name) !== -1) {
+                    item.classList.add('highlighted');
+                }
+            });
+        }
+
+        // 清除搜索
+        function clearSearch() {
+            document.getElementById('addressInput').value = '';
+            document.getElementById('searchResult').innerHTML = '';
+            clearSearchMarkers();
+
+            var items = document.querySelectorAll('.kindergarten-item');
+            items.forEach(function(item) {
+                item.classList.remove('highlighted');
+            });
+
+            map.setView([22.3167, 114.1694], 14);
+        }
+
+        // ===== 移动端功能 =====
+
+        // 切换列表面板
+        function toggleListPanel() {
+            var panel = document.getElementById('infoPanel');
+            panel.classList.toggle('show');
+        }
+
+        // 关闭列表面板
+        function closeListPanel() {
+            var panel = document.getElementById('infoPanel');
+            panel.classList.remove('show');
+        }
+
+        // 移动端搜索
+        function mobileSearch() {
+            var input = document.getElementById('mobileAddressInput').value.trim();
+            if (!input) {
+                alert('请输入小区名称或地址');
+                return;
+            }
+
+            // 查找匹配的位置
+            var location = null;
+            for (var key in locationMap) {
+                if (input.toLowerCase().indexOf(key.toLowerCase()) !== -1 ||
+                    key.toLowerCase().indexOf(input.toLowerCase()) !== -1) {
+                    location = locationMap[key];
+                    location.key = key;
+                    break;
+                }
+            }
+
+            if (!location) {
+                var keywords = ['黄埔', '旺角', '油麻地', '何文田', '九龙城', '土瓜湾', '红磡', '大角咀', '奥运', '九龙塘'];
+                keywords.forEach(function(kw) {
+                    if (input.indexOf(kw) !== -1 && !location) {
+                        for (var key in locationMap) {
+                            if (key.indexOf(kw) !== -1) {
+                                location = locationMap[key];
+                                location.key = key;
+                                break;
+                            }
+                        }
+                    }
+                });
+            }
+
+            if (!location) {
+                document.getElementById('mobileResultTitle').textContent = '未找到匹配位置';
+                document.getElementById('mobileNearbyList').innerHTML = '<div style="padding:10px;color:#666;">请尝试输入：黄埔花园、港湾豪庭、何文田、九龙城等</div>';
+                document.getElementById('mobileResultPanel').classList.remove('hidden');
+                return;
+            }
+
+            // 清除之前的搜索标记
+            clearSearchMarkers();
+
+            // 添加搜索位置标记
+            searchMarker = L.marker([location.lat, location.lng], { icon: locationIcon })
+                .addTo(map)
+                .bindPopup('<b>' + location.key + '</b><br>' + location.desc)
+                .openPopup();
+
+            map.setView([location.lat, location.lng], 15);
+
+            // 计算附近幼稚园距离
+            var nearbyKg = allKindergartens.map(function(kg) {
+                var dist = calculateDistance(location.lat, location.lng, kg.lat, kg.lng);
+                return { kg: kg, distance: dist };
+            }).sort(function(a, b) {
+                return a.distance - b.distance;
+            });
+
+            // 找最近地铁站
+            var nearestStation = stations.map(function(s) {
+                var dist = calculateDistance(location.lat, location.lng, s.lat, s.lng);
+                return { station: s, distance: dist };
+            }).sort(function(a, b) {
+                return a.distance - b.distance;
+            })[0];
+
+            // 显示移动端结果
+            document.getElementById('mobileResultTitle').textContent = '📍 ' + location.key + ' | 🚇 ' + nearestStation.station.name.split(' ')[0] + ' (' + formatDistance(nearestStation.distance) + ')';
+
+            var listHtml = '';
+            nearbyKg.slice(0, 6).forEach(function(item) {
+                var outdoorText = item.kg.outdoor ? '✅' : '❌';
+                var freeText = item.kg.free ? ' [免费]' : '';
+                listHtml += '<div class="nearby-item" onclick="focusKindergarten(\'' + item.kg.name + '\')">';
+                listHtml += '<span class="nearby-name">' + outdoorText + ' ' + item.kg.name + freeText + '</span>';
+                listHtml += '<span class="nearby-distance">' + formatDistance(item.distance) + '</span>';
+                listHtml += '</div>';
+            });
+            document.getElementById('mobileNearbyList').innerHTML = listHtml;
+            document.getElementById('mobileResultPanel').classList.remove('hidden');
+
+            // 绘制距离线
+            var nearestKg = nearbyKg[0];
+            var line = L.polyline([
+                [location.lat, location.lng],
+                [nearestKg.kg.lat, nearestKg.kg.lng]
+            ], { color: '#007bff', weight: 2, dashArray: '5, 5' }).addTo(map);
+            distanceLines.push(line);
+        }
+
+        // 移动端清除
+        function mobileClear() {
+            document.getElementById('mobileAddressInput').value = '';
+            document.getElementById('mobileResultPanel').classList.add('hidden');
+            document.getElementById('mobileResultTitle').textContent = '';
+            document.getElementById('mobileNearbyList').innerHTML = '';
+            clearSearchMarkers();
+            map.setView([22.3167, 114.1694], 14);
+        }
+
+        // 检测设备类型并调整显示
+        function checkDevice() {
+            if (window.innerWidth <= 768) {
+                document.getElementById('infoPanel').classList.remove('show');
+            }
+        }
+
+        // 页面加载完成后执行
+        window.addEventListener('load', checkDevice);
+        window.addEventListener('resize', checkDevice);
+    </script>
+</body>
+</html>
